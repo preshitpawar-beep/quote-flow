@@ -87,7 +87,7 @@ export default function AuthPage() {
             </div>
             <CardTitle className="text-2xl">{isLogin ? 'Welcome back' : 'Create account'}</CardTitle>
             <CardDescription>
-              {isLogin ? 'Sign in to manage your quotes' : 'Get started with QuoteForge'}
+              {isLogin ? 'Sign in to manage your quotes' : 'Get started with Stenner Ltd QuoteForge'}
             </CardDescription>
           </CardHeader>
           <CardContent>

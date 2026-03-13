@@ -25,12 +25,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen flex">
       {/* Sidebar */}
       <aside className="w-64 bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border">
-        <div className="p-5 flex items-center gap-3 border-b border-sidebar-border">
+        <Link to="/" className="p-5 flex items-center gap-3 border-b border-sidebar-border hover:bg-sidebar-accent/30 transition-colors">
           <div className="w-9 h-9 rounded-lg gradient-accent flex items-center justify-center">
             <Factory className="w-5 h-5 text-accent-foreground" />
           </div>
-          <span className="font-bold text-lg tracking-tight">QuoteForge</span>
-        </div>
+          <div>
+            <span className="font-bold text-lg tracking-tight block leading-tight">QuoteForge</span>
+            <span className="text-[10px] text-sidebar-foreground/50">Stenner Ltd</span>
+          </div>
+        </Link>
 
         <nav className="flex-1 p-3 space-y-1">
           {navItems.map(item => (

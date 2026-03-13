@@ -78,7 +78,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-border/50 py-8">
         <div className="max-w-6xl mx-auto px-6 text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} QuoteForge. Built for manufacturers.
+          © {new Date().getFullYear()} Stenner Ltd. Powered by QuoteForge.
         </div>
       </footer>
     </div>
