@@ -16,7 +16,7 @@ export default function LandingPage() {
             <div className="w-9 h-9 rounded-lg gradient-accent flex items-center justify-center">
               <Factory className="w-5 h-5 text-accent-foreground" />
             </div>
-            <span className="font-bold text-lg tracking-tight">QuoteForge</span>
+            <span className="font-bold text-lg tracking-tight">QuoteForge <span className="text-xs font-normal text-muted-foreground">by Stenner Ltd</span></span>
           </div>
           <Button
             onClick={() => navigate(user ? '/dashboard' : '/auth')}
