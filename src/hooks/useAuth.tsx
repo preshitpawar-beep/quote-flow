@@ -38,13 +38,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: { data: { full_name: fullName, role, company_name: companyName } },
     });
     if (error) throw error;
-    if (data.user) {
-      await supabase.from('profiles').update({ company_name: companyName }).eq('user_id', data.user.id);
-      await supabase.from('user_roles').insert({ user_id: data.user.id, role });
-    }
+    // Role is now auto-assigned via DB trigger from user metadata
+    // Profile company_name update will work after email confirmation
   };
 
   const signIn = async (email: string, password: string) => {
