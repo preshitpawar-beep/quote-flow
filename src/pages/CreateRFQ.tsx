@@ -33,7 +33,7 @@ export default function CreateRFQ() {
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [urgency, setUrgency] = useState('normal');
+  const [urgency, setUrgency] = useState<'normal' | 'urgent' | 'critical'>('normal');
   const [deadline, setDeadline] = useState('');
   const [items, setItems] = useState<LineItem[]>([
     { id: crypto.randomUUID(), part_number: '', description: '', quantity: 1, unit: 'pcs', notes: '' },
@@ -89,14 +89,14 @@ export default function CreateRFQ() {
     setSaving(true);
     try {
       // Create RFQ
-      const { data: rfq, error: rfqError } = await supabase.from('rfqs').insert({
+      const { data: rfq, error: rfqError } = await supabase.from('rfqs').insert([{
         created_by: user!.id,
         title,
         description,
         urgency,
         deadline: deadline || null,
-        status: asDraft ? 'draft' : 'sent',
-      }).select().single();
+        status: asDraft ? 'draft' as const : 'sent' as const,
+      }]).select().single();
 
       if (rfqError) throw rfqError;
 
@@ -180,7 +180,7 @@ export default function CreateRFQ() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Urgency</Label>
-                <Select value={urgency} onValueChange={setUrgency}>
+                <Select value={urgency} onValueChange={(v) => setUrgency(v as 'normal' | 'urgent' | 'critical')}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="normal">Normal</SelectItem>
