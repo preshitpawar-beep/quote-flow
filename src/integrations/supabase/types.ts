@@ -14,16 +14,376 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          company_name: string
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_name?: string
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      quote_items: {
+        Row: {
+          created_at: string
+          id: string
+          lead_time_days: number | null
+          notes: string | null
+          quote_id: string
+          rfq_item_id: string
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_time_days?: number | null
+          notes?: string | null
+          quote_id: string
+          rfq_item_id: string
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_time_days?: number | null
+          notes?: string | null
+          quote_id?: string
+          rfq_item_id?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_items_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_items_rfq_item_id_fkey"
+            columns: ["rfq_item_id"]
+            isOneToOne: false
+            referencedRelation: "rfq_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          created_at: string
+          currency: string | null
+          id: string
+          lead_time_days: number | null
+          notes: string | null
+          rfq_id: string
+          rfq_supplier_id: string
+          status: Database["public"]["Enums"]["quote_status"]
+          submitted_at: string | null
+          supplier_user_id: string | null
+          total_price: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string | null
+          id?: string
+          lead_time_days?: number | null
+          notes?: string | null
+          rfq_id: string
+          rfq_supplier_id: string
+          status?: Database["public"]["Enums"]["quote_status"]
+          submitted_at?: string | null
+          supplier_user_id?: string | null
+          total_price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string | null
+          id?: string
+          lead_time_days?: number | null
+          notes?: string | null
+          rfq_id?: string
+          rfq_supplier_id?: string
+          status?: Database["public"]["Enums"]["quote_status"]
+          submitted_at?: string | null
+          supplier_user_id?: string | null
+          total_price?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_rfq_id_fkey"
+            columns: ["rfq_id"]
+            isOneToOne: false
+            referencedRelation: "rfqs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_rfq_supplier_id_fkey"
+            columns: ["rfq_supplier_id"]
+            isOneToOne: false
+            referencedRelation: "rfq_suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rfq_files: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          rfq_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          rfq_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          rfq_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfq_files_rfq_id_fkey"
+            columns: ["rfq_id"]
+            isOneToOne: false
+            referencedRelation: "rfqs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rfq_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          notes: string | null
+          part_number: string | null
+          quantity: number
+          rfq_id: string
+          unit: string | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          notes?: string | null
+          part_number?: string | null
+          quantity?: number
+          rfq_id: string
+          unit?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          notes?: string | null
+          part_number?: string | null
+          quantity?: number
+          rfq_id?: string
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfq_items_rfq_id_fkey"
+            columns: ["rfq_id"]
+            isOneToOne: false
+            referencedRelation: "rfqs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rfq_suppliers: {
+        Row: {
+          access_token: string
+          id: string
+          invited_at: string
+          reminded_at: string | null
+          rfq_id: string
+          supplier_id: string
+          supplier_user_id: string | null
+        }
+        Insert: {
+          access_token?: string
+          id?: string
+          invited_at?: string
+          reminded_at?: string | null
+          rfq_id: string
+          supplier_id: string
+          supplier_user_id?: string | null
+        }
+        Update: {
+          access_token?: string
+          id?: string
+          invited_at?: string
+          reminded_at?: string | null
+          rfq_id?: string
+          supplier_id?: string
+          supplier_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfq_suppliers_rfq_id_fkey"
+            columns: ["rfq_id"]
+            isOneToOne: false
+            referencedRelation: "rfqs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_suppliers_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rfqs: {
+        Row: {
+          created_at: string
+          created_by: string
+          deadline: string | null
+          description: string | null
+          id: string
+          status: Database["public"]["Enums"]["rfq_status"]
+          title: string
+          updated_at: string
+          urgency: Database["public"]["Enums"]["urgency_level"]
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["rfq_status"]
+          title: string
+          updated_at?: string
+          urgency?: Database["public"]["Enums"]["urgency_level"]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["rfq_status"]
+          title?: string
+          updated_at?: string
+          urgency?: Database["public"]["Enums"]["urgency_level"]
+        }
+        Relationships: []
+      }
+      suppliers: {
+        Row: {
+          company_name: string
+          contact_name: string | null
+          created_at: string
+          created_by: string
+          email: string
+          id: string
+          phone: string | null
+          specialties: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          company_name: string
+          contact_name?: string | null
+          created_at?: string
+          created_by: string
+          email: string
+          id?: string
+          phone?: string | null
+          specialties?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string
+          contact_name?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string
+          id?: string
+          phone?: string | null
+          specialties?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "buyer" | "supplier"
+      quote_status: "pending" | "submitted" | "accepted" | "rejected"
+      rfq_status: "draft" | "sent" | "quoting" | "closed" | "awarded"
+      urgency_level: "normal" | "urgent" | "critical"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +510,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["buyer", "supplier"],
+      quote_status: ["pending", "submitted", "accepted", "rejected"],
+      rfq_status: ["draft", "sent", "quoting", "closed", "awarded"],
+      urgency_level: ["normal", "urgent", "critical"],
+    },
   },
 } as const
