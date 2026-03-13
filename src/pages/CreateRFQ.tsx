@@ -89,14 +89,14 @@ export default function CreateRFQ() {
     setSaving(true);
     try {
       // Create RFQ
-      const { data: rfq, error: rfqError } = await supabase.from('rfqs').insert({
+      const { data: rfq, error: rfqError } = await supabase.from('rfqs').insert([{
         created_by: user!.id,
         title,
         description,
         urgency,
         deadline: deadline || null,
-        status: asDraft ? 'draft' : 'sent',
-      }).select().single();
+        status: asDraft ? 'draft' as const : 'sent' as const,
+      }]).select().single();
 
       if (rfqError) throw rfqError;
 
