@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useRole } from '@/hooks/useRole';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
@@ -8,18 +9,24 @@ import {
   FilePlus,
   Users,
   LogOut,
-  FileText,
 } from 'lucide-react';
 
-const navItems = [
+const buyerNavItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/rfq/new', label: 'New RFQ', icon: FilePlus },
   { to: '/suppliers', label: 'Suppliers', icon: Users },
 ];
 
+const supplierNavItems = [
+  { to: '/dashboard', label: 'My Quotes', icon: LayoutDashboard },
+];
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { signOut, user } = useAuth();
+  const { role } = useRole();
   const location = useLocation();
+
+  const navItems = role === 'supplier' ? supplierNavItems : buyerNavItems;
 
   return (
     <div className="min-h-screen flex">
@@ -54,9 +61,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="p-3 border-t border-sidebar-border">
-          <div className="px-3 py-2 text-xs text-sidebar-foreground/50 truncate mb-2">
+          <div className="px-3 py-2 text-xs text-sidebar-foreground/50 truncate mb-1">
             {user?.email}
           </div>
+          {role && (
+            <div className="px-3 pb-2 text-[10px] uppercase tracking-wider text-sidebar-foreground/40">
+              {role}
+            </div>
+          )}
           <Button
             variant="ghost"
             className="w-full justify-start gap-3 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
