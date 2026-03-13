@@ -160,7 +160,7 @@ export default function SupplierQuotePage() {
             <div className="w-10 h-10 rounded-lg gradient-accent flex items-center justify-center">
               <Factory className="w-6 h-6 text-accent-foreground" />
             </div>
-            <span className="text-primary-foreground font-bold text-lg">QuoteForge</span>
+            <span className="text-primary-foreground font-bold text-lg">QuoteForge <span className="text-sm font-normal opacity-60">by Stenner Ltd</span></span>
           </div>
           <h1 className="text-2xl font-bold text-primary-foreground">{rfq.title}</h1>
           <div className="flex items-center gap-4 mt-2">

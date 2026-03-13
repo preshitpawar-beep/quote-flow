@@ -16,7 +16,7 @@ export default function LandingPage() {
             <div className="w-9 h-9 rounded-lg gradient-accent flex items-center justify-center">
               <Factory className="w-5 h-5 text-accent-foreground" />
             </div>
-            <span className="font-bold text-lg tracking-tight">QuoteForge</span>
+            <span className="font-bold text-lg tracking-tight">QuoteForge <span className="text-xs font-normal text-muted-foreground">by Stenner Ltd</span></span>
           </div>
           <Button
             onClick={() => navigate(user ? '/dashboard' : '/auth')}
@@ -32,7 +32,7 @@ export default function LandingPage() {
         <div className="absolute inset-0 gradient-navy opacity-95" />
         <div className="relative max-w-6xl mx-auto px-6 py-24 lg:py-32 text-center">
           <h1 className="text-4xl lg:text-6xl font-extrabold tracking-tight text-primary-foreground leading-tight animate-fade-in">
-            Manufacturing Quotes,
+            Stenner Ltd Quotes,
             <br />
             <span className="text-accent">Simplified.</span>
           </h1>
@@ -78,7 +78,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-border/50 py-8">
         <div className="max-w-6xl mx-auto px-6 text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} QuoteForge. Built for manufacturers.
+          © {new Date().getFullYear()} Stenner Ltd. Powered by QuoteForge.
         </div>
       </footer>
     </div>
