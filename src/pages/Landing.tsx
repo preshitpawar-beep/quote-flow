@@ -32,7 +32,7 @@ export default function LandingPage() {
         <div className="absolute inset-0 gradient-navy opacity-95" />
         <div className="relative max-w-6xl mx-auto px-6 py-24 lg:py-32 text-center">
           <h1 className="text-4xl lg:text-6xl font-extrabold tracking-tight text-primary-foreground leading-tight animate-fade-in">
-            Manufacturing Quotes,
+            Stenner Ltd Quotes,
             <br />
             <span className="text-accent">Simplified.</span>
           </h1>
