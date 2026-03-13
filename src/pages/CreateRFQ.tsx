@@ -180,7 +180,7 @@ export default function CreateRFQ() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Urgency</Label>
-                <Select value={urgency} onValueChange={setUrgency}>
+                <Select value={urgency} onValueChange={(v) => setUrgency(v as 'normal' | 'urgent' | 'critical')}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="normal">Normal</SelectItem>
