@@ -33,7 +33,7 @@ export default function CreateRFQ() {
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [urgency, setUrgency] = useState('normal');
+  const [urgency, setUrgency] = useState<'normal' | 'urgent' | 'critical'>('normal');
   const [deadline, setDeadline] = useState('');
   const [items, setItems] = useState<LineItem[]>([
     { id: crypto.randomUUID(), part_number: '', description: '', quantity: 1, unit: 'pcs', notes: '' },
