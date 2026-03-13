@@ -378,6 +378,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      quote_has_supplier_link: {
+        Args: { _rfq_supplier_id: string }
+        Returns: boolean
+      }
+      quote_item_has_supplier_link: {
+        Args: { _quote_id: string }
+        Returns: boolean
+      }
+      rfq_has_suppliers: { Args: { _rfq_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "buyer" | "supplier"
