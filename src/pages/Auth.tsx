@@ -49,9 +49,10 @@ export default function AuthPage() {
               <Factory className="w-7 h-7" />
             </div>
             <h1 className="text-3xl font-bold tracking-tight">QuoteForge</h1>
+            <span className="text-sm opacity-60">by Stenner Ltd</span>
           </div>
           <p className="text-lg opacity-90 leading-relaxed">
-            Streamline your manufacturing quote process. Upload drawings, invite suppliers, and compare quotes — all in one place.
+            Stenner Ltd's quote management platform. Upload drawings, invite suppliers, and compare quotes — all in one place.
           </p>
           <div className="mt-12 space-y-4 opacity-75 text-sm">
             <div className="flex items-center gap-3">
