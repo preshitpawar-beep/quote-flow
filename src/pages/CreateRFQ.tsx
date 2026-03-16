@@ -19,6 +19,10 @@ interface LineItem {
   unit: string;
 }
 
+function getFunctionErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 export default function CreateRFQ() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -64,7 +68,7 @@ export default function CreateRFQ() {
     rfqDescription: string,
     quoteLink: string
   ) {
-    await supabase.functions.invoke('send-rfq-email', {
+    const { data, error } = await supabase.functions.invoke('send-rfq-email', {
       body: {
         supplierEmail,
         supplierName,
@@ -76,6 +80,14 @@ export default function CreateRFQ() {
         senderName: senderName || 'Stenner Ltd',
       },
     });
+
+    if (error) {
+      throw error;
+    }
+
+    if (data && typeof data === 'object' && 'success' in data && !data.success) {
+      throw new Error(typeof data.error === 'string' ? data.error : 'Failed to send email');
+    }
   }
 
   async function handleSubmit(asDraft: boolean) {
@@ -120,6 +132,8 @@ export default function CreateRFQ() {
       }
 
       let emailsSent = 0;
+      let emailFailures = 0;
+
       for (const supplierId of selectedSuppliers) {
         const { error: rsError } = await supabase.from('rfq_suppliers').insert({
           rfq_id: rfq.id,
@@ -155,7 +169,7 @@ export default function CreateRFQ() {
                 );
                 emailsSent++;
               } catch {
-                // Email failed — supplier link still works
+                emailFailures++;
               }
             }
           }
@@ -164,8 +178,12 @@ export default function CreateRFQ() {
 
       if (asDraft) {
         toast.success('Saved as draft');
-      } else if (emailsSent > 0) {
+      } else if (emailsSent > 0 && emailFailures === 0) {
         toast.success(`RFQ sent — ${emailsSent} supplier${emailsSent > 1 ? 's' : ''} emailed`);
+      } else if (emailsSent > 0 && emailFailures > 0) {
+        toast.success(`RFQ sent — ${emailsSent} emailed, ${emailFailures} failed. You can copy links from the RFQ page.`);
+      } else if (emailFailures > 0) {
+        toast.error('RFQ created, but supplier emails failed — copy links from the RFQ page for now');
       } else if (selectedSuppliers.length > 0) {
         toast.success('RFQ sent — copy links from the RFQ page to share with suppliers');
       } else {
@@ -173,8 +191,8 @@ export default function CreateRFQ() {
       }
 
       navigate(`/rfq/${rfq.id}`);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to create RFQ');
+    } catch (err: unknown) {
+      toast.error(getFunctionErrorMessage(err, 'Failed to create RFQ'));
     } finally {
       setSaving(false);
     }
@@ -188,7 +206,6 @@ export default function CreateRFQ() {
           <p className="text-muted-foreground text-sm mt-1">Request for quote</p>
         </div>
 
-        {/* Details */}
         <section className="space-y-4 p-5 bg-card border border-border/50 rounded-xl">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Details</h2>
           <div className="space-y-3">
@@ -220,7 +237,6 @@ export default function CreateRFQ() {
           </div>
         </section>
 
-        {/* Items */}
         <section className="space-y-3 p-5 bg-card border border-border/50 rounded-xl">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Parts & Items</h2>
@@ -249,7 +265,6 @@ export default function CreateRFQ() {
           </div>
         </section>
 
-        {/* Files */}
         <section className="p-5 bg-card border border-border/50 rounded-xl space-y-3">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Drawings & Files</h2>
           <label className="flex items-center justify-center gap-2 w-full h-24 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-accent/40 transition-colors text-sm text-muted-foreground">
@@ -269,7 +284,6 @@ export default function CreateRFQ() {
           ))}
         </section>
 
-        {/* Suppliers */}
         <section className="p-5 bg-card border border-border/50 rounded-xl space-y-3">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Suppliers to invite</h2>
           {suppliers.length === 0 ? (
@@ -304,7 +318,6 @@ export default function CreateRFQ() {
           )}
         </section>
 
-        {/* Actions */}
         <div className="flex gap-3 justify-end pb-8">
           <Button variant="outline" onClick={() => handleSubmit(true)} disabled={saving} className="gap-2">
             <Save className="w-4 h-4" /> Save draft
