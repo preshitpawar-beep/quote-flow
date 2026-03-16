@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 interface EmailPayload {
@@ -14,6 +14,10 @@ interface EmailPayload {
   urgency: "normal" | "urgent" | "critical";
   quoteLink: string;
   senderName: string;
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Unexpected error";
 }
 
 serve(async (req) => {
@@ -41,16 +45,20 @@ serve(async (req) => {
       senderName,
     } = payload;
 
+    if (!supplierEmail || !supplierName || !rfqTitle || !quoteLink || !senderName) {
+      throw new Error("Missing required email fields");
+    }
+
     const urgencyBanner =
       urgency === "critical"
         ? `<div style="background:#FEE2E2;border-left:4px solid #DC2626;padding:12px 16px;margin-bottom:24px;border-radius:4px;">
             <strong style="color:#991B1B;">⚠ Critical Request</strong> — Please respond as soon as possible.
            </div>`
         : urgency === "urgent"
-        ? `<div style="background:#FEF3C7;border-left:4px solid #D97706;padding:12px 16px;margin-bottom:24px;border-radius:4px;">
-            <strong style="color:#92400E;">Urgent Request</strong> — Your prompt response is appreciated.
-           </div>`
-        : "";
+          ? `<div style="background:#FEF3C7;border-left:4px solid #D97706;padding:12px 16px;margin-bottom:24px;border-radius:4px;">
+              <strong style="color:#92400E;">Urgent Request</strong> — Your prompt response is appreciated.
+             </div>`
+          : "";
 
     const deadlineRow = deadline
       ? `<tr>
@@ -68,8 +76,6 @@ serve(async (req) => {
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#F9FAFB;padding:40px 16px;">
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border-radius:8px;border:1px solid #E5E7EB;overflow:hidden;max-width:600px;">
-        
-        <!-- Header -->
         <tr>
           <td style="background:#1E293B;padding:24px 32px;">
             <table cellpadding="0" cellspacing="0">
@@ -85,18 +91,13 @@ serve(async (req) => {
             </table>
           </td>
         </tr>
-
-        <!-- Body -->
         <tr>
           <td style="padding:32px;">
             ${urgencyBanner}
-            
             <p style="color:#374151;font-size:15px;margin:0 0 8px;">Hi ${supplierName},</p>
             <p style="color:#374151;font-size:15px;margin:0 0 24px;line-height:1.6;">
               Stenner Ltd would like to invite you to submit a quote for the following request.
             </p>
-
-            <!-- RFQ Details Box -->
             <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;padding:20px 24px;margin-bottom:24px;">
               <div style="font-size:17px;font-weight:600;color:#111827;margin-bottom:12px;">${rfqTitle}</div>
               ${rfqDescription ? `<p style="font-size:14px;color:#6B7280;margin:0 0 16px;line-height:1.6;">${rfqDescription}</p>` : ""}
@@ -108,24 +109,18 @@ serve(async (req) => {
                 </tr>
               </table>
             </div>
-
             <p style="color:#374151;font-size:14px;margin:0 0 20px;line-height:1.6;">
               Use your unique link below to view the full specification, download any drawings, and submit your pricing. No account needed.
             </p>
-
-            <!-- CTA Button -->
             <div style="text-align:center;margin:28px 0;">
               <a href="${quoteLink}" style="display:inline-block;background:#F97316;color:#FFFFFF;font-size:15px;font-weight:600;padding:14px 32px;border-radius:6px;text-decoration:none;letter-spacing:0.2px;">
                 View RFQ &amp; Submit Quote →
               </a>
             </div>
-
             <p style="color:#9CA3AF;font-size:12px;margin:24px 0 0;line-height:1.6;">
               Or copy this link: <a href="${quoteLink}" style="color:#F97316;word-break:break-all;">${quoteLink}</a>
             </p>
-
             <hr style="border:none;border-top:1px solid #E5E7EB;margin:28px 0;">
-
             <p style="color:#6B7280;font-size:14px;margin:0;line-height:1.6;">
               Kind regards,<br>
               <strong style="color:#374151;">${senderName}</strong><br>
@@ -133,8 +128,6 @@ serve(async (req) => {
             </p>
           </td>
         </tr>
-
-        <!-- Footer -->
         <tr>
           <td style="background:#F8FAFC;border-top:1px solid #E5E7EB;padding:16px 32px;text-align:center;">
             <p style="color:#9CA3AF;font-size:12px;margin:0;">
@@ -142,7 +135,6 @@ serve(async (req) => {
             </p>
           </td>
         </tr>
-
       </table>
     </td></tr>
   </table>
@@ -176,7 +168,8 @@ Stenner Ltd`;
       }),
     });
 
-    const data = await res.json();
+    const rawResponse = await res.text();
+    const data = rawResponse ? JSON.parse(rawResponse) : {};
 
     if (!res.ok) {
       throw new Error(data.message || "Failed to send email");
@@ -186,13 +179,13 @@ Stenner Ltd`;
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
-  } catch (err) {
+  } catch (err: unknown) {
     return new Response(
-      JSON.stringify({ success: false, error: err.message }),
+      JSON.stringify({ success: false, error: getErrorMessage(err) }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
-      }
+      },
     );
   }
 });

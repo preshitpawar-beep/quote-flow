@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { FileText, Download, Copy, CheckCircle, Send, Clock, Mail } from 'lucide-react';
+import { FileText, Download, Copy, CheckCircle, Clock, Mail } from 'lucide-react';
 
 const STATUS_VARIANT: Record<string, any> = {
   draft: 'secondary', sent: 'accent', quoting: 'warning', closed: 'default', awarded: 'success',
@@ -15,6 +15,10 @@ const STATUS_VARIANT: Record<string, any> = {
 const QUOTE_VARIANT: Record<string, any> = {
   pending: 'secondary', submitted: 'success', accepted: 'success', rejected: 'destructive',
 };
+
+function getFunctionErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
 
 export default function RFQDetail() {
   const { id } = useParams<{ id: string }>();
@@ -60,7 +64,7 @@ export default function RFQDetail() {
     setSending(rs.id);
     try {
       const { data: profile } = await supabase.from('profiles').select('full_name').eq('user_id', user!.id).single();
-      await supabase.functions.invoke('send-rfq-email', {
+      const { data, error } = await supabase.functions.invoke('send-rfq-email', {
         body: {
           supplierEmail: rs.suppliers.email,
           supplierName: rs.suppliers.contact_name || rs.suppliers.company_name,
@@ -72,9 +76,18 @@ export default function RFQDetail() {
           senderName: profile?.full_name || 'Stenner Ltd',
         },
       });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data && typeof data === 'object' && 'success' in data && !data.success) {
+        throw new Error(typeof data.error === 'string' ? data.error : 'Failed to send email');
+      }
+
       toast.success(`Email sent to ${rs.suppliers.company_name}`);
-    } catch {
-      toast.error('Failed to send email');
+    } catch (error: unknown) {
+      toast.error(getFunctionErrorMessage(error, 'Failed to send email'));
     } finally {
       setSending(null);
     }
@@ -107,8 +120,6 @@ export default function RFQDetail() {
   return (
     <AppLayout>
       <div className="max-w-4xl space-y-6">
-
-        {/* Header */}
         <div>
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <h1 className="text-2xl font-bold tracking-tight">{rfq.title}</h1>
@@ -125,7 +136,6 @@ export default function RFQDetail() {
           )}
         </div>
 
-        {/* Items table */}
         <section>
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Items ({items.length})</h2>
           <div className="border border-border/50 rounded-xl overflow-hidden">
@@ -154,7 +164,6 @@ export default function RFQDetail() {
           </div>
         </section>
 
-        {/* Files */}
         {files.length > 0 && (
           <section>
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Files ({files.length})</h2>
@@ -177,7 +186,6 @@ export default function RFQDetail() {
           </section>
         )}
 
-        {/* Suppliers */}
         <section>
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
             Suppliers ({rfqSuppliers.length})
@@ -218,7 +226,6 @@ export default function RFQDetail() {
           )}
         </section>
 
-        {/* Quote comparison */}
         {submittedQuotes.length > 0 && (
           <section>
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
