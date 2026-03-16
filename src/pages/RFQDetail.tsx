@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import AppLayout from '@/components/AppLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import {
-  FileText, Download, Clock, Users, Copy, CheckCircle, AlertTriangle,
-} from 'lucide-react';
+import { FileText, Download, Copy, CheckCircle, Send, Clock, Mail } from 'lucide-react';
+
+const STATUS_VARIANT: Record<string, any> = {
+  draft: 'secondary', sent: 'accent', quoting: 'warning', closed: 'default', awarded: 'success',
+};
+const QUOTE_VARIANT: Record<string, any> = {
+  pending: 'secondary', submitted: 'success', accepted: 'success', rejected: 'destructive',
+};
 
 export default function RFQDetail() {
   const { id } = useParams<{ id: string }>();
@@ -20,8 +24,8 @@ export default function RFQDetail() {
   const [files, setFiles] = useState<any[]>([]);
   const [rfqSuppliers, setRfqSuppliers] = useState<any[]>([]);
   const [quotes, setQuotes] = useState<any[]>([]);
-  const [quoteItems, setQuoteItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState<string | null>(null);
 
   useEffect(() => {
     if (id && user) loadAll();
@@ -35,31 +39,45 @@ export default function RFQDetail() {
       supabase.from('rfq_suppliers').select('*, suppliers(*)').eq('rfq_id', id),
       supabase.from('quotes').select('*').eq('rfq_id', id),
     ]);
-
     setRfq(rfqRes.data);
     setItems(itemsRes.data || []);
     setFiles(filesRes.data || []);
     setRfqSuppliers(suppRes.data || []);
     setQuotes(quotesRes.data || []);
-
-    // Load quote items
-    if (quotesRes.data && quotesRes.data.length > 0) {
-      const qIds = quotesRes.data.map((q: any) => q.id);
-      const { data: qItems } = await supabase.from('quote_items').select('*').in('quote_id', qIds);
-      setQuoteItems(qItems || []);
-    }
-
     setLoading(false);
   }
 
-  function getSupplierLink(rfqSupplierId: string, accessToken: string) {
+  function quoteLink(rfqSupplierId: string, accessToken: string) {
     return `${window.location.origin}/supplier/quote/${rfqSupplierId}?token=${accessToken}`;
   }
 
   async function copyLink(rfqSupplierId: string, accessToken: string) {
-    const link = getSupplierLink(rfqSupplierId, accessToken);
-    await navigator.clipboard.writeText(link);
-    toast.success('Supplier quote link copied!');
+    await navigator.clipboard.writeText(quoteLink(rfqSupplierId, accessToken));
+    toast.success('Link copied');
+  }
+
+  async function resendEmail(rs: any) {
+    setSending(rs.id);
+    try {
+      const { data: profile } = await supabase.from('profiles').select('full_name').eq('user_id', user!.id).single();
+      await supabase.functions.invoke('send-rfq-email', {
+        body: {
+          supplierEmail: rs.suppliers.email,
+          supplierName: rs.suppliers.contact_name || rs.suppliers.company_name,
+          rfqTitle: rfq.title,
+          rfqDescription: rfq.description,
+          deadline: rfq.deadline,
+          urgency: rfq.urgency,
+          quoteLink: quoteLink(rs.id, rs.access_token),
+          senderName: profile?.full_name || 'Stenner Ltd',
+        },
+      });
+      toast.success(`Email sent to ${rs.suppliers.company_name}`);
+    } catch {
+      toast.error('Failed to send email');
+    } finally {
+      setSending(null);
+    }
   }
 
   async function downloadFile(filePath: string, fileName: string) {
@@ -74,59 +92,48 @@ export default function RFQDetail() {
     }
   }
 
-  if (loading) {
-    return (
-      <AppLayout>
-        <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
-        </div>
-      </AppLayout>
-    );
-  }
+  if (loading) return (
+    <AppLayout>
+      <div className="flex justify-center py-16">
+        <div className="w-7 h-7 border-4 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    </AppLayout>
+  );
 
-  if (!rfq) {
-    return (
-      <AppLayout>
-        <p className="text-muted-foreground">RFQ not found.</p>
-      </AppLayout>
-    );
-  }
+  if (!rfq) return <AppLayout><p className="text-muted-foreground">RFQ not found.</p></AppLayout>;
 
-  const submittedQuotes = quotes.filter((q: any) => q.status === 'submitted');
+  const submittedQuotes = quotes.filter(q => q.status === 'submitted');
 
   return (
     <AppLayout>
-      <div className="space-y-6 max-w-5xl">
+      <div className="max-w-4xl space-y-6">
+
         {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-2xl font-bold tracking-tight">{rfq.title}</h1>
-              <Badge variant={rfq.urgency === 'critical' ? 'urgent' : rfq.urgency === 'urgent' ? 'warning' : 'secondary'}>
-                {rfq.urgency}
-              </Badge>
-              <Badge variant={rfq.status === 'awarded' ? 'success' : rfq.status === 'sent' ? 'accent' : 'secondary'}>
-                {rfq.status}
-              </Badge>
-            </div>
-            {rfq.description && <p className="text-sm text-muted-foreground">{rfq.description}</p>}
-            {rfq.deadline && (
-              <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                <Clock className="w-3 h-3" /> Deadline: {new Date(rfq.deadline).toLocaleDateString()}
-              </p>
-            )}
+        <div>
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <h1 className="text-2xl font-bold tracking-tight">{rfq.title}</h1>
+            <Badge variant={rfq.urgency === 'critical' ? 'urgent' : rfq.urgency === 'urgent' ? 'warning' : 'secondary'}>
+              {rfq.urgency}
+            </Badge>
+            <Badge variant={STATUS_VARIANT[rfq.status]}>{rfq.status}</Badge>
           </div>
+          {rfq.description && <p className="text-sm text-muted-foreground">{rfq.description}</p>}
+          {rfq.deadline && (
+            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+              <Clock className="w-3 h-3" /> Deadline {new Date(rfq.deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+          )}
         </div>
 
-        {/* Items */}
-        <Card className="border-border/50">
-          <CardHeader><CardTitle className="text-base">Parts / Items ({items.length})</CardTitle></CardHeader>
-          <CardContent>
+        {/* Items table */}
+        <section>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Items ({items.length})</h2>
+          <div className="border border-border/50 rounded-xl overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-12">#</TableHead>
-                  <TableHead>Part Number</TableHead>
+                  <TableHead className="w-10">#</TableHead>
+                  <TableHead>Part number</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead className="text-right">Qty</TableHead>
                   <TableHead>Unit</TableHead>
@@ -144,114 +151,116 @@ export default function RFQDetail() {
                 ))}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
         {/* Files */}
         {files.length > 0 && (
-          <Card className="border-border/50">
-            <CardHeader><CardTitle className="text-base">Drawings & Files ({files.length})</CardTitle></CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {files.map(f => (
-                  <div key={f.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                    <div className="flex items-center gap-3">
-                      <FileText className="w-5 h-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">{f.file_name}</p>
-                        <p className="text-xs text-muted-foreground">{f.file_type} · {(f.file_size / 1024).toFixed(0)} KB</p>
-                      </div>
+          <section>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Files ({files.length})</h2>
+            <div className="space-y-2">
+              {files.map(f => (
+                <div key={f.id} className="flex items-center justify-between p-3 bg-card border border-border/50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">{f.file_name}</p>
+                      <p className="text-xs text-muted-foreground">{(f.file_size / 1024).toFixed(0)} KB</p>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => downloadFile(f.file_path, f.file_name)} className="gap-1">
-                      <Download className="w-4 h-4" /> Download
-                    </Button>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  <Button variant="ghost" size="sm" onClick={() => downloadFile(f.file_path, f.file_name)} className="gap-1 text-xs">
+                    <Download className="w-3.5 h-3.5" /> Download
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </section>
         )}
 
-        {/* Suppliers & Links */}
-        <Card className="border-border/50">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Users className="w-4 h-4" /> Invited Suppliers ({rfqSuppliers.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {rfqSuppliers.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No suppliers invited yet.</p>
-            ) : (
-              <div className="space-y-2">
-                {rfqSuppliers.map((rs: any) => {
-                  const quote = quotes.find((q: any) => q.rfq_supplier_id === rs.id);
-                  return (
-                    <div key={rs.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                      <div>
-                        <p className="text-sm font-medium">{rs.suppliers?.company_name}</p>
-                        <p className="text-xs text-muted-foreground">{rs.suppliers?.email}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {quote?.status === 'submitted' ? (
-                          <Badge variant="success" className="gap-1"><CheckCircle className="w-3 h-3" /> Quoted</Badge>
-                        ) : (
-                          <Badge variant="secondary">Pending</Badge>
-                        )}
-                        <Button variant="outline" size="sm" onClick={() => copyLink(rs.id, rs.access_token)} className="gap-1">
-                          <Copy className="w-3 h-3" /> Copy Link
-                        </Button>
-                      </div>
+        {/* Suppliers */}
+        <section>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+            Suppliers ({rfqSuppliers.length})
+          </h2>
+          {rfqSuppliers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No suppliers invited.</p>
+          ) : (
+            <div className="divide-y divide-border border border-border/50 rounded-xl overflow-hidden">
+              {rfqSuppliers.map((rs: any) => {
+                const q = quotes.find(q => q.rfq_supplier_id === rs.id);
+                const isQuoted = q?.status === 'submitted';
+                return (
+                  <div key={rs.id} className="flex items-center justify-between px-4 py-3 bg-card">
+                    <div>
+                      <p className="text-sm font-medium">{rs.suppliers?.company_name}</p>
+                      <p className="text-xs text-muted-foreground">{rs.suppliers?.email}</p>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={QUOTE_VARIANT[q?.status || 'pending']}>
+                        {isQuoted ? (
+                          <span className="flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Quoted</span>
+                        ) : q?.status || 'Pending'}
+                      </Badge>
+                      <Button variant="ghost" size="sm" onClick={() => copyLink(rs.id, rs.access_token)} className="gap-1 text-xs h-7">
+                        <Copy className="w-3 h-3" /> Copy link
+                      </Button>
+                      {!isQuoted && (
+                        <Button variant="outline" size="sm" onClick={() => resendEmail(rs)} disabled={sending === rs.id} className="gap-1 text-xs h-7">
+                          <Mail className="w-3 h-3" />
+                          {sending === rs.id ? 'Sending…' : 'Email'}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
 
-        {/* Quote Comparison */}
+        {/* Quote comparison */}
         {submittedQuotes.length > 0 && (
-          <Card className="border-border/50 border-accent/20">
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-accent" /> Quote Comparison
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+          <section>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+              Quote comparison ({submittedQuotes.length})
+            </h2>
+            <div className="border border-border/50 rounded-xl overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Supplier</TableHead>
-                    <TableHead className="text-right">Total Price</TableHead>
-                    <TableHead className="text-right">Lead Time</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead className="text-right">Lead time</TableHead>
                     <TableHead>Notes</TableHead>
-                    <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {submittedQuotes.map((q: any) => {
-                    const rs = rfqSuppliers.find((s: any) => s.id === q.rfq_supplier_id);
-                    return (
-                      <TableRow key={q.id}>
-                        <TableCell className="font-medium">{rs?.suppliers?.company_name || '—'}</TableCell>
-                        <TableCell className="text-right font-semibold">
-                          {q.total_price ? `$${Number(q.total_price).toLocaleString()}` : '—'}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {q.lead_time_days ? `${q.lead_time_days} days` : '—'}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{q.notes || '—'}</TableCell>
-                        <TableCell>
-                          <Badge variant={q.status === 'accepted' ? 'success' : 'secondary'}>{q.status}</Badge>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {submittedQuotes
+                    .sort((a, b) => (a.total_price || 0) - (b.total_price || 0))
+                    .map((q: any, idx: number) => {
+                      const rs = rfqSuppliers.find(s => s.id === q.rfq_supplier_id);
+                      return (
+                        <TableRow key={q.id} className={idx === 0 ? 'bg-success/5' : ''}>
+                          <TableCell className="font-medium">
+                            {idx === 0 && <span className="text-success text-xs mr-1">★</span>}
+                            {rs?.suppliers?.company_name || '—'}
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {q.total_price ? `£${Number(q.total_price).toLocaleString()}` : '—'}
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                            {q.lead_time_days ? `${q.lead_time_days}d` : '—'}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
+                            {q.notes || '—'}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
+            </div>
+          </section>
         )}
       </div>
     </AppLayout>
